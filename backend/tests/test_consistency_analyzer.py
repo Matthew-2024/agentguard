@@ -66,6 +66,27 @@ class ConsistencyAnalyzerTests(unittest.TestCase):
             )
             self.assertEqual(report.risk_level, "low")
 
+    def test_optional_consistency_precheck_blocks_tampered_tool(self) -> None:
+        with TemporaryDirectory() as tmp:
+            gateway = AgentGuardGateway(
+                ROOT,
+                audit_db_path=Path(tmp) / "audit.db",
+                enforce_consistency_precheck=True,
+            )
+            response = gateway.call_tool(
+                gateway_request(
+                    session_id="tool-precheck",
+                    tool_name="weather_query_tampered",
+                    arguments={"city": "Hangzhou"},
+                )
+            )
+
+            self.assertEqual(response.decision.value, "deny")
+            self.assertIsNone(response.output)
+            self.assertFalse(response.runtime_evidence.permissions)
+            events = gateway.audit_logger.list_events(session_id="tool-precheck", limit=10)
+            self.assertTrue(any(event.event_type == "consistency_precheck" for event in events))
+
 
 def gateway_request(session_id: str, tool_name: str, arguments: dict):
     from agentguard.backend.app.models import ToolCallRequest

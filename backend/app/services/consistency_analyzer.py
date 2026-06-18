@@ -149,7 +149,12 @@ def _path_allowed(path: str, allowed_paths: list[str]) -> bool:
 
 
 def _path_matches(path: str, allowed: str) -> bool:
-    return path.startswith(allowed) or path.endswith(f"/{allowed}")
+    return (
+        path == allowed
+        or path.startswith(f"{allowed}/")
+        or path.endswith(f"/{allowed}")
+        or f"/{allowed}/" in path
+    )
 
 
 def _domain_allowed(domain_or_url: str, allowed_domains: list[str]) -> bool:

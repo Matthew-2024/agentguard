@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from agentguard.backend.app.demo.benchmark import run_full_benchmark
 from agentguard.backend.app.demo.baseline_eval import run_baseline_eval
 from agentguard.backend.app.demo.live_demo import run_live_demo
 from agentguard.backend.app.demo.scenarios import SCENARIOS, get_scenario
@@ -20,6 +21,7 @@ from agentguard.backend.app.models import RuntimeEvidence, TaintStatus, ToolCall
 from agentguard.backend.app.services.audit_logger import AuditLogger, default_audit_db_path
 from agentguard.backend.app.services.gateway import AgentGuardGateway
 from agentguard.backend.app.services.multi_agent import judge_delegation
+from agentguard.backend.app.services.report_generator import generate_latest_report, generate_session_report
 
 
 
@@ -59,6 +61,22 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
             tool_name = parsed.path.removeprefix("/tools/").removesuffix("/consistency").strip("/")
             self._send_json(_tool_consistency_payload(tool_name))
             return
+        if parsed.path == "/report/latest":
+            self._send_json(generate_latest_report())
+            return
+        if parsed.path == "/report/latest.md":
+            self._send_text(generate_latest_report()["markdown"])
+            return
+        if parsed.path.startswith("/report/session/"):
+            session_part = parsed.path.removeprefix("/report/session/").strip("/")
+            as_markdown = session_part.endswith(".md")
+            session_id = session_part.removesuffix(".md")
+            report = generate_session_report(session_id)
+            if as_markdown:
+                self._send_text(report["markdown"])
+            else:
+                self._send_json(report)
+            return
         self._send_json({"error": "not found"}, status=404)
 
     def do_POST(self) -> None:
@@ -68,6 +86,18 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/demo/evaluation/run":
             self._send_json(run_baseline_eval(ROOT))
+            return
+        if parsed.path == "/demo/benchmark/run":
+            query = parse_qs(parsed.query)
+            repetitions = int(query.get("repetitions", ["10"])[0])
+            pressure_iterations = int(query.get("pressure_iterations", ["200"])[0])
+            self._send_json(
+                run_full_benchmark(
+                    ROOT,
+                    repetitions=max(1, min(repetitions, 50)),
+                    pressure_iterations=max(1, min(pressure_iterations, 5000)),
+                )
+            )
             return
         if parsed.path.startswith("/demo/scenarios/") and parsed.path.endswith("/run"):
             scenario_id = parsed.path.removeprefix("/demo/scenarios/").removesuffix("/run").strip("/")
@@ -94,6 +124,15 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self._send_cors_headers()
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_text(self, payload: str, status: int = 200) -> None:
+        body = payload.encode("utf-8")
+        self.send_response(status)
+        self._send_cors_headers()
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

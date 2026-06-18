@@ -241,7 +241,7 @@ button:focus-visible {
 }
 
 .pageStack:has(.evalTable) {
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
 }
 
 .pageHeader {
@@ -323,6 +323,16 @@ h2 {
   align-items: center;
   gap: 8px;
   color: var(--accent-deep);
+}
+
+.reportLink {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.64);
+  font-weight: 600;
+  text-decoration: none;
 }
 
 .sessionChip {
@@ -838,7 +848,7 @@ dd {
 }
 
 .evalTable {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 1.1fr repeat(4, minmax(0, 0.9fr));
 }
 
 .pageStack:has(.evalTable) .panel:first-of-type {
@@ -889,6 +899,48 @@ dd {
   color: #314037;
   font-size: 17px;
   line-height: 1.6;
+}
+
+.benchmarkPanel {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.benchmarkGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.benchmarkGrid > div {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.benchmarkGrid span {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.benchmarkGrid strong {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.05;
+}
+
+.benchmarkGrid em {
+  min-width: 0;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-style: normal;
+  overflow-wrap: anywhere;
 }
 
 @keyframes pageRise {
@@ -969,6 +1021,10 @@ dd {
   .riskPath,
   .auditGrid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .benchmarkGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .riskPath::before {
@@ -1161,7 +1217,7 @@ dd {
   }
 
   .pageStack:has(.evalTable) {
-    grid-template-rows: auto minmax(0, 1fr) minmax(96px, auto);
+    grid-template-rows: auto minmax(0, 1fr) auto minmax(96px, auto);
   }
 
   .panel {
@@ -1255,7 +1311,7 @@ dd {
   }
 
   .evalTable {
-    grid-template-columns: 1.25fr 0.76fr 0.76fr 0.56fr;
+    grid-template-columns: 1.25fr repeat(4, minmax(0, 0.7fr));
   }
 
   .evalRow {
@@ -1368,6 +1424,24 @@ dd {
   .mobileLabel {
     font-size: 13px;
     line-height: 1.22;
+  }
+
+  .benchmarkGrid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .benchmarkGrid > div {
+    padding: 7px 9px;
+  }
+
+  .benchmarkGrid strong {
+    font-size: 18px;
+  }
+
+  .benchmarkGrid span,
+  .benchmarkGrid em {
+    font-size: 12px;
   }
 }
 

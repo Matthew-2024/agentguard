@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.pytest_cache_local/
 .mypy_cache/
 .ruff_cache/
 .coverage
@@ -13,6 +14,7 @@ htmlcov/
 *.log
 *.tmp
 backend/test_write.tmp
+tmp-runtime/
 
 # Frontend dependencies and build output
 frontend/node_modules/
@@ -28,6 +30,18 @@ frontend/.vite/
 .env.*
 !demo_data/benign/.env
 !.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.npmrc
+.pypirc
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+secrets/
 
 # Archives generated for handoff
 *.zip

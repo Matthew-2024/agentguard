@@ -29,7 +29,7 @@ class LiveDemoTests(unittest.TestCase):
                 for item in result["consistency_reports"]
             )
         )
-        self.assertEqual(result["baseline"]["case_count"], 6)
+        self.assertEqual(result["baseline"]["case_count"], 7)
         self.assertGreaterEqual(len(result["events"]), len(steps))
 
     def test_demo_server_uses_same_workspace_root(self) -> None:

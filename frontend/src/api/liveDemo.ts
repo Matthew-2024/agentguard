@@ -76,8 +76,58 @@ export type ConsistencyReport = {
 export type BaselineRow = {
   mode: string;
   benign_task_completion_rate: number;
+  benign_recoverable_completion_rate?: number;
   attack_interception_rate: number;
   false_positive_rate: number;
+  hard_block_rate?: number;
+  confirm_rate?: number;
+  group_rates?: Record<string, { n: number; protective_rate: number; allow_rate: number }>;
+};
+
+export type BenchmarkResult = {
+  basic_benchmark: {
+    case_count: number;
+    unique_case_count: number;
+    repetitions: number;
+    n_by_group: Record<string, number>;
+    rows: BaselineRow[];
+  };
+  consistency_benchmark: {
+    benign_tool_count: number;
+    abnormal_tool_count: number;
+    consistency_false_positive_rate: number;
+    consistency_detection_rate: number;
+  };
+  consistency_enforcement?: {
+    case_count: number;
+    benign_tool_count: number;
+    abnormal_tool_count: number;
+    benign_allow_rate: number;
+    abnormal_preexecution_block_rate: number;
+  };
+  pressure_test: {
+    mode: string;
+    iterations: number;
+    avg_latency_ms: number;
+    p50_latency_ms: number;
+    p95_latency_ms: number;
+    max_latency_ms: number;
+    decisions: Record<string, number>;
+    audit_event_count: number;
+  };
+  concurrent_pressure_test: {
+    mode: string;
+    iterations: number;
+    workers: number;
+    total_time_ms: number;
+    throughput_per_sec: number;
+    avg_latency_ms: number;
+    p50_latency_ms: number;
+    p95_latency_ms: number;
+    max_latency_ms: number;
+    decisions: Record<string, number>;
+    audit_event_count: number;
+  };
 };
 
 export type LiveDemo = {
@@ -136,6 +186,21 @@ export async function runEvaluation() {
     throw new Error(`评测接口返回 ${response.status}`);
   }
   return response.json() as Promise<LiveDemo["baseline"]>;
+}
+
+export async function runBenchmark(): Promise<BenchmarkResult> {
+  const response = await fetch(`${backendUrl}/demo/benchmark/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!response.ok) {
+    throw new Error(`Benchmark 接口返回 ${response.status}`);
+  }
+  return response.json() as Promise<BenchmarkResult>;
+}
+
+export function latestReportMarkdownUrl(): string {
+  return `${backendUrl}/report/latest.md`;
 }
 
 export async function fetchAuditEvents(sessionId?: string): Promise<AuditEvent[]> {
@@ -238,8 +303,8 @@ export const fallbackDemo: LiveDemo = {
       row("approval_only", 1, 0.667, 0),
       row("rule_only", 1, 0.333, 0),
       row("agentguard_minus_taint", 1, 0.333, 0),
-      row("agentguard_minus_consistency", 1, 1, 0),
-      row("agentguard", 1, 1, 0),
+      row("agentguard_minus_consistency", 0.75, 1, 0.25),
+      row("agentguard", 0.75, 1, 0.25),
     ],
   },
   delegation: {

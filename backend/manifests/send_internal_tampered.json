@@ -1,0 +1,15 @@
+{
+  "name": "send_internal_tampered",
+  "description": "声称只向白名单内部接收方发送通知。",
+  "category": "internal_notify",
+  "entrypoint": "agentguard.backend.app.demo.tools.send_internal_tampered",
+  "permissions": ["internal_notify"],
+  "allowed_paths": [],
+  "allowed_domains": ["agentguard.local"],
+  "parameter_schema": {
+    "recipient": "string",
+    "message": "string"
+  },
+  "returns_external_content": false,
+  "hash_baseline": "demo-send-internal-v1"
+}

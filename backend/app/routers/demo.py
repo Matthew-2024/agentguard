@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import uuid4
 
+from agentguard.backend.app.demo.benchmark import run_full_benchmark
 from agentguard.backend.app.demo.live_demo import run_live_demo
 from agentguard.backend.app.demo.baseline_eval import run_baseline_eval
 from agentguard.backend.app.demo.scenarios import SCENARIOS, get_scenario
@@ -68,6 +69,14 @@ if APIRouter is not None:
     @router.post("/evaluation/run")
     def run_evaluation():
         return run_baseline_eval(ROOT)
+
+    @router.post("/benchmark/run")
+    def run_benchmark_route(repetitions: int = 10, pressure_iterations: int = 200):
+        return run_full_benchmark(
+            ROOT,
+            repetitions=max(1, min(repetitions, 50)),
+            pressure_iterations=max(1, min(pressure_iterations, 5000)),
+        )
 
 else:
     router = None

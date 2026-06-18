@@ -40,8 +40,8 @@ rules:
 
   - session_taint: untrusted
     tool_category: external_send
-    decision: deny
-    reason: 不可信来源后禁止未知外发
+    decision: confirm
+    reason: 不可信来源后外发内容需要人工确认
     risk_factors: [external_context, external_send]
 
   - session_taint: untrusted

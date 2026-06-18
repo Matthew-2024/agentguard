@@ -232,8 +232,8 @@ def _build_metrics(
         },
         {
             "label": "正常任务完成",
-            "value": _ratio(agentguard.get("benign_task_completion_rate", 0), 2),
-            "trend": f"仅人工确认 {approval_only.get('benign_task_completion_rate', 0) * 100:.0f}%",
+            "value": _ratio(agentguard.get("benign_recoverable_completion_rate", 0), 4),
+            "trend": f"立即放行 {agentguard.get('benign_task_completion_rate', 0) * 100:.0f}%",
             "status": "neutral",
         },
         {

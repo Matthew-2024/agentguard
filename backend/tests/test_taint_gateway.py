@@ -84,7 +84,7 @@ class GatewayTaintTests(unittest.TestCase):
                     context_source="external_api",
                 )
             )
-            self.assertEqual(response.decision, Decision.DENY)
+            self.assertEqual(response.decision, Decision.CONFIRM)
             self.assertEqual(response.taint_status, TaintStatus.UNTRUSTED)
             events = gateway.audit_logger.list_events(session_id="s4", limit=10)
             self.assertTrue(any(event.event_type == "taint_transition" for event in events))
@@ -114,7 +114,7 @@ class GatewayTaintTests(unittest.TestCase):
         )
         self.assertEqual(confirmed_sensitive.decision, Decision.ALLOW)
         self.assertIn("manual_override", confirmed_sensitive.risk_factors)
-        self.assertEqual(confirmed_external.decision, Decision.DENY)
+        self.assertEqual(confirmed_external.decision, Decision.ALLOW)
 
     def test_default_audit_db_uses_temp_directory(self) -> None:
         logger = AuditLogger()

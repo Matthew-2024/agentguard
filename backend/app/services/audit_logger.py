@@ -7,6 +7,7 @@ import tempfile
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
+from threading import RLock
 from typing import Iterable, List, Optional
 
 from agentguard.backend.app.models import AuditEvent, TaintStatus
@@ -15,6 +16,8 @@ from agentguard.backend.app.models import AuditEvent, TaintStatus
 class AuditLogger:
     """SQLite-backed append-only audit log for gateway decisions."""
 
+    _lock = RLock()
+
     def __init__(self, db_path: str | Path | None = None) -> None:
         self.db_path = Path(db_path) if db_path is not None else default_audit_db_path()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -22,8 +25,10 @@ class AuditLogger:
 
     @contextmanager
     def _connect(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout = 10000")
+        conn.execute("PRAGMA journal_mode = WAL")
         try:
             yield conn
             conn.commit()
@@ -31,67 +36,70 @@ class AuditLogger:
             conn.close()
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS audit_events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp TEXT NOT NULL,
-                    session_id TEXT NOT NULL,
-                    event_type TEXT NOT NULL,
-                    tool_name TEXT,
-                    taint_before TEXT,
-                    taint_after TEXT,
-                    decision TEXT,
-                    metadata TEXT NOT NULL
+        with self._lock:
+            with self._connect() as conn:
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS audit_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        timestamp TEXT NOT NULL,
+                        session_id TEXT NOT NULL,
+                        event_type TEXT NOT NULL,
+                        tool_name TEXT,
+                        taint_before TEXT,
+                        taint_after TEXT,
+                        decision TEXT,
+                        metadata TEXT NOT NULL
+                    )
+                    """
                 )
-                """
-            )
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS sessions (
-                    session_id TEXT PRIMARY KEY,
-                    taint_status TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS sessions (
+                        session_id TEXT PRIMARY KEY,
+                        taint_status TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    )
+                    """
                 )
-                """
-            )
 
     def record(self, event: AuditEvent) -> int:
-        with self._connect() as conn:
-            cursor = conn.execute(
-                """
-                INSERT INTO audit_events (
-                    timestamp, session_id, event_type, tool_name,
-                    taint_before, taint_after, decision, metadata
+        with self._lock:
+            with self._connect() as conn:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO audit_events (
+                        timestamp, session_id, event_type, tool_name,
+                        taint_before, taint_after, decision, metadata
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        event.timestamp.isoformat(),
+                        event.session_id,
+                        event.event_type,
+                        event.tool_name,
+                        _enum_value(event.taint_before),
+                        _enum_value(event.taint_after),
+                        event.decision,
+                        json.dumps(event.metadata, ensure_ascii=False, sort_keys=True),
+                    ),
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    event.timestamp.isoformat(),
-                    event.session_id,
-                    event.event_type,
-                    event.tool_name,
-                    _enum_value(event.taint_before),
-                    _enum_value(event.taint_after),
-                    event.decision,
-                    json.dumps(event.metadata, ensure_ascii=False, sort_keys=True),
-                ),
-            )
-            return int(cursor.lastrowid)
+                return int(cursor.lastrowid)
 
     def set_session_taint(self, session_id: str, status: TaintStatus) -> None:
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT INTO sessions (session_id, taint_status, updated_at)
-                VALUES (?, ?, ?)
-                ON CONFLICT(session_id)
-                DO UPDATE SET taint_status = excluded.taint_status,
-                              updated_at = excluded.updated_at
-                """,
-                (session_id, status.value, datetime.now().isoformat()),
-            )
+        with self._lock:
+            with self._connect() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO sessions (session_id, taint_status, updated_at)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(session_id)
+                    DO UPDATE SET taint_status = excluded.taint_status,
+                                  updated_at = excluded.updated_at
+                    """,
+                    (session_id, status.value, datetime.now().isoformat()),
+                )
 
     def get_session_taint(self, session_id: str) -> TaintStatus:
         with self._connect() as conn:

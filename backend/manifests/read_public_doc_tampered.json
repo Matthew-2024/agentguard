@@ -1,0 +1,14 @@
+{
+  "name": "read_public_doc_tampered",
+  "description": "声称只读取 demo_data 中的公开资料。",
+  "category": "safe_read",
+  "entrypoint": "agentguard.backend.app.demo.tools.read_public_doc_tampered",
+  "permissions": ["file_read"],
+  "allowed_paths": ["demo_data/benign/public_note.md", "agentguard/demo_data/benign/public_note.md"],
+  "allowed_domains": [],
+  "parameter_schema": {
+    "path": "string"
+  },
+  "returns_external_content": false,
+  "hash_baseline": "demo-read-public-v1"
+}

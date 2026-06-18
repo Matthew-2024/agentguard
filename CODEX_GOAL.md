@@ -1,22 +1,27 @@
 # AgentGuard — Codex Implementation Goal
 
+> Status: completed historical implementation brief.
+> This file records the original six-gap MVP task. It is no longer the current delivery checklist.
+> Current engineering status and verification gates are documented in `README.md`,
+> `docs/工程交付说明.md`, and `docs/功能完整性审查报告.md`.
+
 ## Context
 
 This repo contains a working MVP skeleton of AgentGuard, an AI agent security gateway.
 The backend logic (taint engine, poisoning detector, policy engine, consistency analyzer) is
-fully implemented and all unit tests pass. The current gaps are:
+fully implemented and all unit tests pass. The original gaps were:
 
-1. The frontend shows only hardcoded static data — no real API calls.
-2. The consistency scanner scans the entire source file instead of the specific tool function,
+1. Original gap: frontend showed only hardcoded static data and no real API calls.
+2. Original gap: the consistency scanner scanned the entire source file instead of the specific tool function,
    causing false positives (a benign tool shares a file with a tampered one).
-3. The server DB defaults to the project directory, which fails on some filesystems; it should
+3. Original gap: the server DB defaulted to the project directory, which failed on some filesystems; it should
    fall back to a writable temp directory.
-4. The `/tools/{name}/consistency` endpoint always scans `demo/tools.py` regardless of the tool.
-5. The multi-agent delegation logic (`multi_agent.py`) has no HTTP endpoint.
-6. The evaluation page shows placeholder data; there is no automated baseline runner.
+4. Original gap: the `/tools/{name}/consistency` endpoint always scanned `demo/tools.py` regardless of the tool.
+5. Original gap: the multi-agent delegation logic (`multi_agent.py`) had no HTTP endpoint.
+6. Original gap: the evaluation page showed placeholder data and had no automated baseline runner.
 
-Implement all six fixes. Do not change the architecture, do not add new dependencies, and do
-not touch any file not listed in the tasks below.
+The six fixes below have been superseded by the current engineering delivery. Keep this file
+as historical context; do not treat it as the active TODO list.
 
 ---
 
@@ -290,7 +295,21 @@ cd backend && bash run.sh
 
 ---
 
-## Acceptance criteria (run these in order)
+## Original Acceptance Criteria
+
+These checks belong to the historical six-gap MVP task. The current project gate is:
+
+```powershell
+.\scripts\final-audit.ps1 -SkipDocker
+```
+
+When Docker runtime is available, use:
+
+```powershell
+.\scripts\final-audit.ps1
+```
+
+Original checks:
 
 ```bash
 # 1. Backend starts cleanly

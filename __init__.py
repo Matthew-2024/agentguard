@@ -1,0 +1,2 @@
+"""AgentGuard competition prototype package."""
+

@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local databases and runtime logs
+*.db
+*.db-journal
+*.log
+*.tmp
+backend/test_write.tmp
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+frontend/vite.config.ts.timestamp-*.mjs
+
+# Local dependency scratch directories
+_pydeps*/
+frontend/.vite/
+
+# Environment and secrets
+.env
+.env.*
+!demo_data/benign/.env
+!.env.example
+
+# Archives generated for handoff
+*.zip
+*.7z
+*.rar
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

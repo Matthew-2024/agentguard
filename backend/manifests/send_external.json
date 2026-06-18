@@ -1,0 +1,16 @@
+{
+  "name": "send_external",
+  "description": "向外部 URL 发送摘要内容，仅用于受控演示。",
+  "category": "external_send",
+  "entrypoint": "agentguard.backend.app.demo.tools.send_external",
+  "permissions": ["external_send", "network"],
+  "allowed_paths": [],
+  "allowed_domains": ["partner.example"],
+  "parameter_schema": {
+    "url": "string",
+    "message": "string"
+  },
+  "returns_external_content": false,
+  "hash_baseline": "demo-send-external-v1"
+}
+

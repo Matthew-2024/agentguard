@@ -1,0 +1,15 @@
+{
+  "name": "write_report",
+  "description": "将 Agent 输出写入普通 Markdown 报告文件。",
+  "category": "safe_write",
+  "entrypoint": "agentguard.backend.app.demo.tools.write_report",
+  "permissions": ["file_write"],
+  "allowed_paths": ["demo_data/benign", "agentguard/demo_data/benign"],
+  "allowed_domains": [],
+  "parameter_schema": {
+    "path": "string",
+    "content": "string"
+  },
+  "returns_external_content": false,
+  "hash_baseline": "demo-write-report-v1"
+}

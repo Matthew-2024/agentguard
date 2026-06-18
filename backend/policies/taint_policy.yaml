@@ -1,0 +1,100 @@
+version: 1
+description: AgentGuard taint-actionability decision table.
+
+rules:
+  - session_taint: trusted
+    tool_category: "*"
+    decision: allow
+    reason: 可信会话允许调用
+    risk_factors: []
+
+  - session_taint: untrusted
+    tool_category: safe_read
+    decision: allow
+    reason: 外部内容上下文中仍允许安全读取
+    risk_factors: [external_context]
+
+  - session_taint: untrusted
+    tool_category: safe_write
+    decision: allow
+    reason: 外部内容上下文中允许普通本地写入并记录
+    risk_factors: [external_context]
+
+  - session_taint: untrusted
+    tool_category: sensitive_read
+    decision: confirm
+    reason: 不可信来源后触发敏感读取需要确认
+    risk_factors: [external_context, sensitive_read]
+
+  - session_taint: untrusted
+    tool_category: sensitive_write
+    decision: confirm
+    reason: 不可信来源后触发敏感写入需要确认
+    risk_factors: [external_context, sensitive_write]
+
+  - session_taint: untrusted
+    tool_category: internal_notify
+    decision: confirm
+    reason: 不可信来源后向内部接收方发送内容需要确认
+    risk_factors: [external_context, internal_send]
+
+  - session_taint: untrusted
+    tool_category: external_send
+    decision: deny
+    reason: 不可信来源后禁止未知外发
+    risk_factors: [external_context, external_send]
+
+  - session_taint: untrusted
+    tool_category: execute
+    decision: deny
+    reason: 不可信来源后禁止执行命令
+    risk_factors: [external_context, command_execution]
+
+  - session_taint: tainted
+    tool_category: safe_read
+    decision: allow
+    reason: tainted 会话仅允许安全读取继续取证
+    risk_factors: [tainted_context]
+
+  - session_taint: tainted
+    tool_category: safe_write
+    decision: confirm
+    reason: tainted 会话写入普通文件需要确认
+    risk_factors: [tainted_context, write]
+
+  - session_taint: tainted
+    tool_category: sensitive_read
+    decision: deny
+    reason: tainted 会话禁止敏感读取
+    risk_factors: [tainted_context, sensitive_read]
+
+  - session_taint: tainted
+    tool_category: sensitive_write
+    decision: deny
+    reason: tainted 会话禁止敏感写入
+    risk_factors: [tainted_context, sensitive_write]
+
+  - session_taint: tainted
+    tool_category: internal_notify
+    decision: confirm
+    reason: tainted 会话内部通知需要确认
+    risk_factors: [tainted_context, internal_send]
+
+  - session_taint: tainted
+    tool_category: external_send
+    decision: deny
+    reason: tainted 会话禁止外发
+    risk_factors: [tainted_context, external_send]
+
+  - session_taint: tainted
+    tool_category: execute
+    decision: deny
+    reason: tainted 会话禁止执行命令
+    risk_factors: [tainted_context, command_execution]
+
+  - session_taint: quarantined
+    tool_category: "*"
+    decision: deny
+    reason: quarantined 内容不可驱动后续工具调用
+    risk_factors: [quarantined_context]
+

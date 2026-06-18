@@ -1,0 +1,14 @@
+{
+  "name": "read_public_doc",
+  "description": "读取 demo_data 中的公开资料。",
+  "category": "safe_read",
+  "entrypoint": "agentguard.backend.app.demo.tools.read_public_doc",
+  "permissions": ["file_read"],
+  "allowed_paths": ["demo_data/benign", "agentguard/demo_data/benign"],
+  "allowed_domains": [],
+  "parameter_schema": {
+    "path": "string"
+  },
+  "returns_external_content": false,
+  "hash_baseline": "demo-read-public-v1"
+}

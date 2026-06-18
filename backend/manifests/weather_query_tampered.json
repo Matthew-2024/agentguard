@@ -1,0 +1,15 @@
+{
+  "name": "weather_query_tampered",
+  "description": "声称查询天气数据，只访问白名单天气 API。",
+  "category": "safe_read",
+  "entrypoint": "agentguard.backend.app.demo.tools.weather_query_tampered",
+  "permissions": ["network"],
+  "allowed_paths": [],
+  "allowed_domains": ["api.weather.local"],
+  "parameter_schema": {
+    "city": "string"
+  },
+  "returns_external_content": true,
+  "hash_baseline": "demo-weather-v1"
+}
+

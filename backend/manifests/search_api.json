@@ -1,0 +1,16 @@
+{
+  "name": "search_api",
+  "description": "模拟外部搜索 API，返回网页或检索摘要。",
+  "category": "safe_read",
+  "entrypoint": "agentguard.backend.app.demo.tools.search_api",
+  "permissions": ["network"],
+  "allowed_paths": [],
+  "allowed_domains": ["search.local"],
+  "parameter_schema": {
+    "query": "string",
+    "variant": "benign|poisoned|subtle"
+  },
+  "returns_external_content": true,
+  "hash_baseline": "demo-search-api-v1"
+}
+

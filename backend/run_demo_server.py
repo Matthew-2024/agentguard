@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import argparse
+import os
+import secrets
 import sys
 from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -33,6 +35,8 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path != "/health" and not self._authorized():
+            return
         if parsed.path == "/demo/scenarios":
             self._send_json([asdict(scenario) for scenario in SCENARIOS])
             return
@@ -81,6 +85,8 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if not self._authorized():
+            return
         if parsed.path == "/demo/live/run":
             self._send_json(run_live_demo(ROOT))
             return
@@ -144,9 +150,14 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def _send_cors_headers(self) -> None:
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin")
+        allowed = _cors_origins()
+        if origin and origin in allowed:
+            self.send_header("Access-Control-Allow-Origin", origin)
+        elif "*" in allowed:
+            self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
 
     def _read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", "0"))
@@ -154,6 +165,14 @@ class DemoRequestHandler(BaseHTTPRequestHandler):
             return {}
         raw = self.rfile.read(length).decode("utf-8")
         return json.loads(raw) if raw else {}
+
+    def _authorized(self) -> bool:
+        expected = os.getenv("AGENTGUARD_API_KEY", "")
+        provided = self.headers.get("X-API-Key", "")
+        if expected and provided and secrets.compare_digest(provided, expected):
+            return True
+        self._send_json({"error": "forbidden"}, status=403)
+        return False
 
 
 def _run_scenario_payload(scenario_id: str) -> dict:
@@ -220,6 +239,11 @@ def _model_dump(value: object) -> object:
     if hasattr(value, "model_dump"):
         return value.model_dump(mode="json")  # type: ignore[no-any-return]
     return value
+
+
+def _cors_origins() -> list[str]:
+    raw = os.getenv("AGENTGUARD_CORS_ORIGINS", "http://127.0.0.1:5173,http://localhost:5173")
+    return [item.strip() for item in raw.split(",") if item.strip()]
 
 
 def main(host: str = "127.0.0.1", port: int = 8000) -> None:

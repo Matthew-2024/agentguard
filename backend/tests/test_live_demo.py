@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import unittest
 from pathlib import Path
 
@@ -12,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class LiveDemoTests(unittest.TestCase):
     def test_live_demo_runs_real_gateway_chain(self) -> None:
+        os.environ["AGENTGUARD_DB"] = str(ROOT / "agentguard" / "tmp-runtime" / "test_live_demo.db")
         result = run_live_demo(ROOT)
         steps = [
             step

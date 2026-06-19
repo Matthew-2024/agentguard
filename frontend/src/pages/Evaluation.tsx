@@ -1,12 +1,13 @@
 import React from "react";
 import { ChartBar, DownloadSimple, Gauge, Play, ShieldWarning } from "@phosphor-icons/react";
 import { useDemo } from "../context/DemoContext";
-import { BenchmarkResult, latestReportMarkdownUrl, runBenchmark, runEvaluation } from "../api/liveDemo";
+import { BenchmarkResult, downloadLatestReport, runBenchmark, runEvaluation } from "../api/liveDemo";
 
 export function Evaluation() {
   const { data } = useDemo();
   const [loading, setLoading] = React.useState(false);
   const [benchmarkLoading, setBenchmarkLoading] = React.useState(false);
+  const [reportLoading, setReportLoading] = React.useState(false);
   const [rows, setRows] = React.useState(data.baseline.rows);
   const [benchmark, setBenchmark] = React.useState<BenchmarkResult | null>(null);
 
@@ -35,6 +36,15 @@ export function Evaluation() {
     }
   }, []);
 
+  const exportReport = React.useCallback(async () => {
+    setReportLoading(true);
+    try {
+      await downloadLatestReport();
+    } finally {
+      setReportLoading(false);
+    }
+  }, []);
+
   return (
     <section className="pageStack">
       <header className="pageHeader">
@@ -50,10 +60,10 @@ export function Evaluation() {
           <Gauge size={17} weight="fill" />
           <span>{benchmarkLoading ? "压力测试中" : "扩展 Benchmark"}</span>
         </button>
-        <a className="actionChip reportLink" href={latestReportMarkdownUrl()} target="_blank" rel="noreferrer">
+        <button type="button" className="actionChip reportLink" onClick={() => void exportReport()} disabled={reportLoading}>
           <DownloadSimple size={17} weight="fill" />
-          <span>导出报告</span>
-        </a>
+          <span>{reportLoading ? "导出中" : "导出报告"}</span>
+        </button>
       </header>
 
       <section className="panel">

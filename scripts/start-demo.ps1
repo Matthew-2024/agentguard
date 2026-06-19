@@ -1,6 +1,7 @@
 param(
     [int]$BackendPort = 8000,
     [int]$FrontendPort = 5173,
+    [string]$ApiKey = "agentguard-local-dev",
     [switch]$Wait
 )
 
@@ -13,10 +14,10 @@ if (-not (Test-Path $Python)) {
     throw "Root venv not found: $Python"
 }
 
-$BackendScript = Join-Path $PSScriptRoot "start-backend.ps1"
-$FrontendScript = Join-Path $PSScriptRoot "start-frontend.ps1"
 $CheckScript = Join-Path $PSScriptRoot "check-demo.ps1"
+$FrontendRoot = Join-Path $RepoRoot "frontend"
 $ApiUrl = "http://127.0.0.1:$BackendPort"
+$CorsOrigins = "http://127.0.0.1:$FrontendPort,http://localhost:$FrontendPort"
 $RuntimeDir = Join-Path $RepoRoot "tmp-runtime"
 $PidFile = Join-Path $RuntimeDir "demo-processes.json"
 New-Item -ItemType Directory -Force -Path $RuntimeDir | Out-Null
@@ -35,32 +36,32 @@ foreach ($port in @($BackendPort, $FrontendPort)) {
 }
 
 Write-Host "[AgentGuard] Starting demo backend on $ApiUrl"
-$backendProcess = Start-Process -FilePath "powershell.exe" `
-    -ArgumentList @(
-        "-NoProfile",
-        "-ExecutionPolicy", "Bypass",
-        "-File", "`"$BackendScript`"",
-        "-DemoServer",
-        "-Port", "$BackendPort"
-    ) `
-    -WorkingDirectory $RepoRoot `
+$env:AGENTGUARD_API_KEY = $ApiKey
+$env:AGENTGUARD_CORS_ORIGINS = $CorsOrigins
+$backendProcess = Start-Process -FilePath $Python `
+    -ArgumentList @("agentguard\backend\run_demo_server.py", "--port", "$BackendPort") `
+    -WorkingDirectory $WorkspaceRoot `
     -WindowStyle Hidden `
     -PassThru
 
 Start-Sleep -Seconds 2
 
 Write-Host "[AgentGuard] Starting demo frontend on http://127.0.0.1:$FrontendPort"
-$frontendProcess = Start-Process -FilePath "powershell.exe" `
-    -ArgumentList @(
-        "-NoProfile",
-        "-ExecutionPolicy", "Bypass",
-        "-File", "`"$FrontendScript`"",
-        "-Port", "$FrontendPort",
-        "-ApiUrl", $ApiUrl
-    ) `
-    -WorkingDirectory $RepoRoot `
+$env:VITE_AGENTGUARD_API_URL = $ApiUrl
+$env:VITE_AGENTGUARD_API_KEY = $ApiKey
+if (-not (Test-Path (Join-Path $FrontendRoot "node_modules"))) {
+    Push-Location $FrontendRoot
+    npm.cmd install
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    Pop-Location
+}
+$frontendProcess = Start-Process -FilePath "npm.cmd" `
+    -ArgumentList @("run", "dev", "--", "--port", "$FrontendPort") `
+    -WorkingDirectory $FrontendRoot `
     -WindowStyle Hidden `
     -PassThru
+
+Start-Sleep -Seconds 5
 
 @{
     started_at = (Get-Date).ToString("o")
@@ -68,13 +69,14 @@ $frontendProcess = Start-Process -FilePath "powershell.exe" `
         pid = $backendProcess.Id
         port = $BackendPort
         url = $ApiUrl
-        script = $BackendScript
+        script = "agentguard\backend\run_demo_server.py"
+        api_key = $ApiKey
     }
     frontend = @{
         pid = $frontendProcess.Id
         port = $FrontendPort
         url = "http://127.0.0.1:$FrontendPort"
-        script = $FrontendScript
+        script = "npm.cmd run dev"
     }
 } | ConvertTo-Json -Depth 4 | Set-Content -Path $PidFile -Encoding utf8
 
@@ -85,7 +87,7 @@ Write-Host "PID file: $PidFile"
 
 if ($Wait) {
     try {
-        & $CheckScript -BackendPort $BackendPort -FrontendPort $FrontendPort
+        & $CheckScript -BackendPort $BackendPort -FrontendPort $FrontendPort -ApiKey $ApiKey
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     } catch {
         Write-Host "[AgentGuard] Demo readiness failed, stopping recorded processes"

@@ -23,8 +23,10 @@ def run_live_demo(
 ) -> dict:
     workspace_root = Path(workspace_root).resolve()
     run_id = f"live-{uuid4().hex[:8]}"
+    runtime_dir = workspace_root / "agentguard" / "tmp-runtime"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
 
-    with TemporaryDirectory() as tmp:
+    with TemporaryDirectory(dir=runtime_dir) as tmp:
         gateway = AgentGuardGateway(workspace_root, audit_db_path=audit_db_path or default_audit_db_path())
         started = perf_counter()
         scenario_runs = [

@@ -152,10 +152,11 @@ def run_benchmark(
     repetitions: int = 10,
 ) -> dict:
     workspace_root = Path(workspace_root).resolve()
+    runtime_dir = _runtime_dir(workspace_root)
     cases = generate_benchmark_cases(repetitions)
     rows = []
     for mode in MODES:
-        with TemporaryDirectory() as tmp:
+        with TemporaryDirectory(dir=runtime_dir) as tmp:
             gateway = AgentGuardGateway(workspace_root, audit_db_path=Path(tmp) / "audit.db")
             scratch_dir = Path(tmp)
             results = [
@@ -469,6 +470,12 @@ def run_full_benchmark(
             iterations=pressure_iterations,
         ),
     }
+
+
+def _runtime_dir(workspace_root: Path) -> Path:
+    path = workspace_root / "agentguard" / "tmp-runtime"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def _pressure_request(index: int) -> ToolCallRequest:

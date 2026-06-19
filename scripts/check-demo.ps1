@@ -1,6 +1,7 @@
 param(
     [int]$BackendPort = 8000,
     [int]$FrontendPort = 5173,
+    [string]$ApiKey = "agentguard-local-dev",
     [int]$Retries = 30,
     [int]$DelaySeconds = 2
 )
@@ -19,7 +20,11 @@ function Wait-HttpOk {
 
     for ($i = 0; $i -lt $Retries; $i++) {
         try {
-            $response = Invoke-WebRequest -Uri $Url -TimeoutSec 3
+            $headers = @{}
+            if ($ApiKey -and $Url -notmatch "/health$") {
+                $headers["X-API-Key"] = $ApiKey
+            }
+            $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec 3 -Headers $headers
             if (& $Validator $response) {
                 Write-Host "[AgentGuard] $Name ready: $Url"
                 return

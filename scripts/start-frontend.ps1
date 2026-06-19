@@ -1,6 +1,7 @@
 param(
     [int]$Port = 5173,
-    [string]$ApiUrl = "http://127.0.0.1:8000"
+    [string]$ApiUrl = "http://127.0.0.1:8000",
+    [string]$ApiKey = "agentguard-local-dev"
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,4 +15,5 @@ if (-not (Test-Path "node_modules")) {
 }
 
 $env:VITE_AGENTGUARD_API_URL = $ApiUrl
+$env:VITE_AGENTGUARD_API_KEY = $ApiKey
 npm.cmd run dev -- --port $Port

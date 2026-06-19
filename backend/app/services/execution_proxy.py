@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 
 from agentguard.backend.app.models import RuntimeEvidence
 
+_MAX_FILE_SIZE = 100 * 1024 * 1024
+
 
 @dataclass
 class ExecutionContext:
@@ -15,11 +17,17 @@ class ExecutionContext:
 
     def read_file(self, path: str) -> str:
         full_path = self._resolve(path)
+        size = full_path.stat().st_size
+        if size > _MAX_FILE_SIZE:
+            raise ValueError(f"File too large: {size} bytes")
         self.evidence.paths.append(_display_path(full_path))
         self.evidence.permissions.append("file_read")
         return full_path.read_text(encoding="utf-8")
 
     def write_file(self, path: str, content: str) -> str:
+        size = len(content.encode("utf-8"))
+        if size > _MAX_FILE_SIZE:
+            raise ValueError(f"Content exceeds {_MAX_FILE_SIZE} bytes")
         full_path = self._resolve(path)
         full_path.parent.mkdir(parents=True, exist_ok=True)
         self.evidence.paths.append(_display_path(full_path))
@@ -61,9 +69,10 @@ class ExecutionContext:
 
     def _resolve(self, path: str) -> Path:
         raw = Path(path)
-        if raw.is_absolute():
-            return raw
-        return (self.workspace_root / raw).resolve()
+        full_path = raw.resolve() if raw.is_absolute() else (self.workspace_root / raw).resolve()
+        if not full_path.is_relative_to(self.workspace_root):
+            raise PermissionError(f"Path outside workspace: {path}")
+        return full_path
 
 
 class ExecutionProxy:
@@ -92,4 +101,3 @@ def _domain(url: str) -> str:
 
 def _display_path(path: Path) -> str:
     return str(path).replace("\\", "/")
-

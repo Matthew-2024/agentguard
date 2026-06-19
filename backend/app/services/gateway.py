@@ -23,6 +23,7 @@ from agentguard.backend.app.services.supply_chain_scanner import SupplyChainScan
 from agentguard.backend.app.services.taint_engine import TaintEngine
 
 LOCAL_CONTEXT_SOURCES = {"user", "local", "trusted", "agent"}
+SENSITIVE_MARKERS = ("secret", "token", "password", "api_key", "apikey", "authorization", ".env")
 
 
 class AgentGuardGateway:
@@ -141,7 +142,7 @@ class AgentGuardGateway:
                     taint_before=taint_before,
                     taint_after=taint_before,
                     decision="observed",
-                    metadata=evidence.model_dump(),
+                    metadata=_redact_metadata(evidence.model_dump()),
                 )
             )
         )
@@ -174,7 +175,7 @@ class AgentGuardGateway:
                     decision=poison.decision.value if poison else "pass",
                     metadata={
                         "poison": poison.model_dump() if poison else None,
-                        "output_summary": output[:240],
+                        "output_summary": _redact_text(output[:240]),
                     },
                 )
             )
@@ -219,6 +220,31 @@ class AgentGuardGateway:
 def _summarize_args(arguments: dict) -> dict:
     summary = {}
     for key, value in arguments.items():
+        if _is_sensitive(str(key)) or _is_sensitive(str(value)):
+            summary[key] = "[redacted]"
+            continue
         text = str(value)
         summary[key] = text if len(text) <= 80 else f"{text[:77]}..."
     return summary
+
+
+def _redact_metadata(value):
+    if isinstance(value, dict):
+        return {
+            key: "[redacted]" if _is_sensitive(str(key)) else _redact_metadata(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_metadata(item) for item in value]
+    if isinstance(value, str):
+        return _redact_text(value)
+    return value
+
+
+def _redact_text(value: str) -> str:
+    return "[redacted]" if _is_sensitive(value) else value
+
+
+def _is_sensitive(value: str) -> bool:
+    lowered = value.lower()
+    return any(marker in lowered for marker in SENSITIVE_MARKERS)

@@ -3,5 +3,5 @@ uvicorn[standard]>=0.30
 pydantic>=2.7
 PyYAML>=6.0
 pytest>=8.0
+# Starlette TestClient in the current FastAPI line imports httpx2 as httpx.
 httpx2>=2.4
-

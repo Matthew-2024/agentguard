@@ -165,11 +165,19 @@ type ToolManifest = {
 
 const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
 const backendUrl = env?.VITE_AGENTGUARD_API_URL ?? "http://127.0.0.1:8000";
+const apiKey = env?.VITE_AGENTGUARD_API_KEY ?? "";
+
+function apiHeaders(extra?: HeadersInit): HeadersInit {
+  return {
+    ...extra,
+    ...(apiKey ? { "X-API-Key": apiKey } : {}),
+  };
+}
 
 export async function runLiveDemo(): Promise<LiveDemo> {
   const response = await fetch(`${backendUrl}/demo/live/run`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: apiHeaders({ "Content-Type": "application/json" }),
   });
   if (!response.ok) {
     throw new Error(`演示接口返回 ${response.status}`);
@@ -180,7 +188,7 @@ export async function runLiveDemo(): Promise<LiveDemo> {
 export async function runEvaluation() {
   const response = await fetch(`${backendUrl}/demo/evaluation/run`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: apiHeaders({ "Content-Type": "application/json" }),
   });
   if (!response.ok) {
     throw new Error(`评测接口返回 ${response.status}`);
@@ -191,7 +199,7 @@ export async function runEvaluation() {
 export async function runBenchmark(): Promise<BenchmarkResult> {
   const response = await fetch(`${backendUrl}/demo/benchmark/run`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: apiHeaders({ "Content-Type": "application/json" }),
   });
   if (!response.ok) {
     throw new Error(`Benchmark 接口返回 ${response.status}`);
@@ -203,12 +211,33 @@ export function latestReportMarkdownUrl(): string {
   return `${backendUrl}/report/latest.md`;
 }
 
+export async function downloadLatestReport(): Promise<void> {
+  const response = await fetch(latestReportMarkdownUrl(), {
+    headers: apiHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error(`报告接口返回 ${response.status}`);
+  }
+  const markdown = await response.text();
+  const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "agentguard_report_latest.md";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function fetchAuditEvents(sessionId?: string): Promise<AuditEvent[]> {
   const params = new URLSearchParams({ limit: "80" });
   if (sessionId) {
     params.set("session_id", sessionId);
   }
-  const response = await fetch(`${backendUrl}/audit/events?${params.toString()}`);
+  const response = await fetch(`${backendUrl}/audit/events?${params.toString()}`, {
+    headers: apiHeaders(),
+  });
   if (!response.ok) {
     throw new Error(`审计接口返回 ${response.status}`);
   }
@@ -217,7 +246,9 @@ export async function fetchAuditEvents(sessionId?: string): Promise<AuditEvent[]
 }
 
 export async function fetchToolConsistencyReports(): Promise<ConsistencyReport[]> {
-  const manifestResponse = await fetch(`${backendUrl}/tools/manifests`);
+  const manifestResponse = await fetch(`${backendUrl}/tools/manifests`, {
+    headers: apiHeaders(),
+  });
   if (!manifestResponse.ok) {
     throw new Error(`工具清单接口返回 ${manifestResponse.status}`);
   }
@@ -225,7 +256,9 @@ export async function fetchToolConsistencyReports(): Promise<ConsistencyReport[]
   const selected = selectAuditManifests(manifests);
   const reports = await Promise.all(
     selected.map(async (manifest) => {
-      const response = await fetch(`${backendUrl}/tools/${manifest.name}/consistency`);
+      const response = await fetch(`${backendUrl}/tools/${manifest.name}/consistency`, {
+        headers: apiHeaders(),
+      });
       if (!response.ok) {
         throw new Error(`${manifest.name} 一致性接口返回 ${response.status}`);
       }

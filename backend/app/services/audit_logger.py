@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
-import tempfile
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -147,7 +146,7 @@ def default_audit_db_path() -> Path:
     env_path = os.environ.get("AGENTGUARD_DB")
     if env_path:
         return Path(env_path)
-    return Path(tempfile.gettempdir()) / "agentguard" / "agentguard_audit.db"
+    return Path.home() / ".agentguard" / "agentguard_audit.db"
 
 
 def _enum_value(value: object) -> Optional[str]:

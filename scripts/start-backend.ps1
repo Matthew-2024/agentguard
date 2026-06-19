@@ -1,6 +1,8 @@
 param(
     [int]$Port = 8000,
-    [switch]$DemoServer
+    [switch]$DemoServer,
+    [string]$ApiKey = "agentguard-local-dev",
+    [string]$CorsOrigins = "http://127.0.0.1:5173,http://localhost:5173"
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,6 +14,8 @@ if (-not (Test-Path $Python)) {
     throw "Root venv not found: $Python"
 }
 Set-Location $WorkspaceRoot
+$env:AGENTGUARD_API_KEY = $ApiKey
+$env:AGENTGUARD_CORS_ORIGINS = $CorsOrigins
 
 if ($DemoServer) {
     & $Python agentguard\backend\run_demo_server.py --port $Port

@@ -53,6 +53,12 @@ agentguard/
 ..\venv\Scripts\python.exe -m pip install -r .\backend\requirements.txt
 ```
 
+后端除 `/health` 外都需要 `X-API-Key`。本地脚本默认使用 `agentguard-local-dev`，真实部署必须通过环境变量换成自己的密钥：
+
+```powershell
+$env:AGENTGUARD_API_KEY = "your-secret-key"
+```
+
 启动 API：
 
 ```powershell
@@ -69,13 +75,14 @@ agentguard/
 
 ```powershell
 cd ..
+$env:AGENTGUARD_API_KEY = "your-secret-key"
 .\venv\Scripts\python.exe -m uvicorn agentguard.backend.app.main:app --reload
 ```
 
 核心 API：
 
 - `POST /gateway/call`
-- `GET /health`
+- `GET /health`，唯一不需要 API Key 的健康检查接口
 - `GET /audit/events`
 - `GET /tools/manifests`
 - `GET /tools/{tool_name}/consistency`
@@ -89,7 +96,7 @@ cd ..
 - `GET /report/session/{session_id}`
 - `GET /report/session/{session_id}.md`
 
-审计日志默认写入系统临时目录 `Temp\agentguard\agentguard_audit.db`，也可以通过环境变量 `AGENTGUARD_DB` 指定路径。
+审计日志默认写入用户目录 `~\.agentguard\agentguard_audit.db`，也可以通过环境变量 `AGENTGUARD_DB` 指定持久化路径。不要把数据库放在系统临时目录，否则重启或清理临时文件时会丢审计历史。
 
 ## 真实演示运行
 
@@ -103,6 +110,8 @@ cd ..
 
 ```powershell
 cd frontend
+$env:VITE_AGENTGUARD_API_URL = "http://127.0.0.1:8000"
+$env:VITE_AGENTGUARD_API_KEY = "agentguard-local-dev"
 npm.cmd run dev
 cd ..
 ```

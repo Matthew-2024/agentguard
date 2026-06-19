@@ -778,3 +778,56 @@
 遗留说明：
 
 - 本轮曾临时创建 `agentguard/_pydeps_backend` 用于排查依赖可见性；后续已改为把 requirements 安装到当前 Python 环境并完成验证。尝试删除该临时目录时遇到异常 ACL，进一步权限修复请求被系统拒绝，因此未继续绕路清理。
+
+## 2026-06-18｜安全审查加固
+
+### 23:48:16｜按审查报告修复生产化安全风险
+
+涉及文件：
+
+- `agentguard/backend/app/main.py`
+- `agentguard/backend/run_demo_server.py`
+- `agentguard/backend/app/services/execution_proxy.py`
+- `agentguard/backend/app/services/audit_logger.py`
+- `agentguard/backend/app/services/gateway.py`
+- `agentguard/backend/app/demo/baseline_eval.py`
+- `agentguard/backend/app/demo/benchmark.py`
+- `agentguard/backend/app/demo/live_demo.py`
+- `agentguard/frontend/src/api/liveDemo.ts`
+- `agentguard/frontend/src/pages/Evaluation.tsx`
+- `agentguard/scripts/start-backend.ps1`
+- `agentguard/scripts/start-frontend.ps1`
+- `agentguard/scripts/start-demo.ps1`
+- `agentguard/scripts/check-demo.ps1`
+- `agentguard/docker-compose.yml`
+- `agentguard/frontend/Dockerfile`
+- `agentguard/frontend/nginx.conf`
+- `agentguard/backend/tests/test_api_contract.py`
+- `agentguard/backend/tests/test_taint_gateway.py`
+- `agentguard/backend/tests/test_live_demo.py`
+- `agentguard/backend/requirements.txt`
+- `agentguard/.env.example`
+- `agentguard/README.md`
+
+修改内容：
+
+- FastAPI 主服务新增 `X-API-Key` 认证，除 `/health` 外所有路由默认要求 API Key。
+- CORS 从通配开放改为读取 `AGENTGUARD_CORS_ORIGINS`，只允许配置内前端来源，方法和请求头也收紧为实际需要的集合。
+- 标准库 demo server 同步加入 API Key 校验，避免演示服务绕过主服务认证。
+- 前端请求统一携带 `VITE_AGENTGUARD_API_KEY`，报告导出从直接链接改为带鉴权头的 fetch 下载。
+- Docker Compose 和 Nginx 前端代理补充 `AGENTGUARD_API_KEY`，容器内由 Nginx 给 `/api` 代理请求注入密钥。
+- `ExecutionContext._resolve()` 增加工作区边界校验，禁止相对路径或绝对路径逃逸到工作区外。
+- 文件读写增加 100MB 上限，降低超大文件读写导致的 DoS 风险。
+- 审计数据库默认路径从临时目录迁移到 `~/.agentguard/agentguard_audit.db`，仍支持 `AGENTGUARD_DB` 覆盖。
+- 网关审计记录增加敏感字段脱敏，覆盖 `secret/token/password/api_key/apikey/authorization/.env` 等明显敏感标记。
+- demo、benchmark、脚本和测试补齐 API Key 参数，确保真实演示链路在鉴权开启后仍可运行。
+- README 同步更新 API Key、CORS、审计库持久路径和前端本地启动说明。
+- `backend/requirements.txt` 保留 `httpx2>=2.4`，并补充注释说明：当前 FastAPI/Starlette TestClient 实际依赖 `httpx2`，不是笔误。
+
+验证结果：
+
+- `python -m pytest backend\tests -p no:cacheprovider` 通过，33/33。
+- `scripts\verify.ps1` 的后端测试、后端编译、baseline、benchmark 和结果校验均通过；前端构建在沙箱内因中文路径转码和目录权限失败，改在沙箱外单独验证通过。
+- `npm.cmd run build` 在 `agentguard/frontend` 通过。
+- 标准库 HTTP demo server 临时启动验证通过：`/health` 返回 200，未带 `X-API-Key` 调用 `/demo/live/run` 返回 403，带正确 key 返回 200，`final_taint=quarantined`，共 4 个真实演示场景。
+- 已确认当前虚拟环境中 `httpx2 2.4.0` 存在，Starlette TestClient 源码优先 `import httpx2 as httpx`。

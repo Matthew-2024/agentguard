@@ -123,9 +123,11 @@ CASES: tuple[EvalCase, ...] = (
 
 def run_baseline_eval(workspace_root: str | Path) -> Dict[str, object]:
     workspace_root = Path(workspace_root).resolve()
+    runtime_dir = workspace_root / "agentguard" / "tmp-runtime"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
     rows = []
     for mode in MODES:
-        with TemporaryDirectory() as tmp:
+        with TemporaryDirectory(dir=runtime_dir) as tmp:
             gateway = AgentGuardGateway(workspace_root, audit_db_path=Path(tmp) / "audit.db")
             results = [_run_case(mode, gateway, case, Path(tmp)) for case in CASES]
             rows.append(_summarize(mode, results))
